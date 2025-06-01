@@ -12,7 +12,6 @@ openai.api_key = st.secrets["OPENAI_API_KEY"]
 def format_number(n):
     return f"{int(n):,}"
 
-# 초기 세션 상태
 if "assets" not in st.session_state:
     st.session_state.assets = [
         {"자산 종류": "현금", "금액": 50000000},
@@ -44,18 +43,11 @@ with tab1:
         st.session_state.plans = edited_plan_df.to_dict("records")
         st.success("📌 전략 저장 완료!")
 
-    st.markdown("### 🎯 전략 요약 보기")
-    if st.session_state.plans:
-        summary = pd.DataFrame(st.session_state.plans)
-        summary["예산"] = summary["예산"].map(lambda x: f"{x:,} 원")
-        st.table(summary)
-
     st.markdown("### 🔁 시나리오 시뮬레이션")
     growth = st.slider("자산 연간 성장률 (%)", 0, 50, 8)
     years = [p["연도"] for p in st.session_state.plans]
     base = sum([a["금액"] for a in st.session_state.assets])
-    sim_data = [{"연도": y, "예상 자산": int(base * ((1 + growth / 100) ** i))} for i, y in enumerate(years)]
-    sim_df = pd.DataFrame(sim_data)
+    sim_df = pd.DataFrame([{"연도": y, "예상 자산": int(base * ((1 + growth / 100) ** i))} for i, y in enumerate(years)])
     sim_df["예상 자산"] = sim_df["예상 자산"].map(lambda x: f"{x:,} 원")
     st.table(sim_df)
 
@@ -87,27 +79,12 @@ with tab4:
     labels = [row["자산 종류"] for row in st.session_state.assets]
     values = [row["금액"] for row in st.session_state.assets]
     colors = ['#A569BD', '#5DADE2', '#48C9B0', '#F4D03F', '#EC7063', '#58D68D']
-
-    fig = go.Figure(data=[go.Pie(
-        labels=labels,
-        values=values,
-        hole=0.5,
-        textinfo='label+percent',
-        hoverinfo='label+percent+value',
-        marker=dict(colors=colors, line=dict(color='#000000', width=1))
-    )])
-    fig.update_layout(
-        template='plotly_dark',
-        annotations=[dict(text=f'{format_number(total)}원', x=0.5, y=0.5, font_size=20, showarrow=False)],
-        margin=dict(t=30, b=30, l=10, r=10)
-    )
+    fig = go.Figure(data=[go.Pie(labels=labels, values=values, hole=0.5, textinfo='label+percent')])
+    fig.update_layout(template='plotly_dark', annotations=[dict(text=f'{format_number(total)}원', x=0.5, y=0.5, font_size=20)])
     st.plotly_chart(fig, use_container_width=True)
 
 with tab5:
     st.subheader("🧠 GPT 자산 분석 및 전략 추천")
-    if "gpt_feedback" not in st.session_state:
-        st.session_state.gpt_feedback = ""
-
     if st.button("💬 GPT 전략 요청"):
         try:
             msg = f"""자산 목록: {st.session_state.assets}\n목표 계획: {st.session_state.plans}\n이 사람에게 적절한 자산 전략을 요약해서 3가지 포인트로 정리해줘."""
@@ -119,4 +96,4 @@ with tab5:
         except Exception as e:
             st.session_state.gpt_feedback = f"❌ 오류 발생: {e}"
 
-    st.text_area("GPT 전략 분석 결과", st.session_state.gpt_feedback, height=250)
+    st.text_area("GPT 전략 분석 결과", st.session_state.get("gpt_feedback", ""), height=250)
