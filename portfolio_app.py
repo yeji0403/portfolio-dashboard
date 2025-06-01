@@ -1,5 +1,4 @@
 
-# 전체 통합 버전: 카드형 위젯 UI 포함한 자산 대시보드 앱
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
@@ -7,6 +6,8 @@ import openai
 
 st.set_page_config(page_title="자산 전략 대시보드", layout="wide")
 st.title("📊 포트폴리오 자산 전략 대시보드")
+
+openai.api_key = st.secrets["OPENAI_API_KEY"]
 
 def format_number(n):
     return f"{int(n):,}"
@@ -27,7 +28,6 @@ if "plans" not in st.session_state:
         {"연도": 2025, "목표": "ETF 확대", "예산": 10000000},
     ]
 
-# 탭 구성
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📅 연도별 목표 및 전략",
     "📥 자산 입력",
@@ -73,13 +73,13 @@ with tab3:
     cols = st.columns(len(st.session_state.assets))
     for i, asset in enumerate(st.session_state.assets):
         with cols[i]:
-            st.markdown(f'''
+            st.markdown(f"""
                 <div style='background-color:#1c1c1c;padding:20px;border-radius:15px;text-align:center;color:white'>
                     <h4>{asset['자산 종류']}</h4>
                     <p style='font-size:24px;margin:0;'>{format_number(asset['금액'])} 원</p>
                     <p style='margin:0;color:#999'>({asset['금액'] / total * 100:.1f}%)</p>
                 </div>
-            ''', unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
     st.markdown(f"### 💵 총 자산 합계: **{format_number(total)} 원**")
 
 with tab4:
@@ -110,13 +110,12 @@ with tab5:
 
     if st.button("💬 GPT 전략 요청"):
         try:
-            openai.api_key = st.secrets["OPENAI_API_KEY"]
-            msg = f"자산 목록: {st.session_state.assets}\n목표 계획: {st.session_state.plans}\n이 사람에게 적절한 자산 전략을 요약해서 3가지 포인트로 정리해줘."
+            msg = f"""자산 목록: {st.session_state.assets}\n목표 계획: {st.session_state.plans}\n이 사람에게 적절한 자산 전략을 요약해서 3가지 포인트로 정리해줘."""
             response = openai.ChatCompletion.create(
                 model="gpt-4",
                 messages=[{"role": "user", "content": msg}]
             )
-            st.session_state.gpt_feedback = response.choices[0].message["content"]
+            st.session_state.gpt_feedback = response["choices"][0]["message"]["content"]
         except Exception as e:
             st.session_state.gpt_feedback = f"❌ 오류 발생: {e}"
 
